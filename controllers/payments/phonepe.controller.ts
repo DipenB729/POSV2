@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 
 import { fail, ok } from "@/controllers/http";
+import { isSupabasePlaceholder } from "@/lib/demo-data";
 import * as OrderModel from "@/models/sales/order.model";
 import * as PhonePePaymentModel from "@/models/payments/phonepe-payment.model";
 import {
@@ -19,11 +20,27 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const allowedRoles = new Set(["CASHIER", "MANAGER", "ADMIN", "SUPER_ADMIN"]);
+const demoPhonePePayments = new Map<string, { orderId: string; amount: number }>();
 
 export async function initiate(request: NextRequest) {
   try {
-    await requireAllowedRole();
     const payload = initiatePhonePeSchema.parse(await request.json());
+
+    if (isSupabasePlaceholder()) {
+      const merchantTransactionId = crypto.randomUUID();
+      demoPhonePePayments.set(merchantTransactionId, {
+        orderId: payload.orderId,
+        amount: payload.amountRupees,
+      });
+
+      return ok({
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/pos/payment-status/${payload.orderId}?demo=phonepe`,
+        merchantTransactionId,
+        paymentId: "demo-phonepe-payment",
+      });
+    }
+
+    await requireAllowedRole();
     const order = await OrderModel.findById(payload.orderId);
 
     if (order.error) {
@@ -133,6 +150,23 @@ async function parsePhonePeCallbackBody(request: NextRequest) {
 export async function status(request: NextRequest) {
   try {
     const payload = phonePeStatusSchema.parse(Object.fromEntries(request.nextUrl.searchParams));
+
+    if (isSupabasePlaceholder()) {
+      const demoPayment = demoPhonePePayments.get(payload.merchantTransactionId);
+
+      if (!demoPayment) {
+        return fail(new Error("Payment not found"), 404);
+      }
+
+      return ok({
+        status: "COMPLETED",
+        merchantTransactionId: payload.merchantTransactionId,
+        orderId: demoPayment.orderId,
+        receipt: createDemoPhonePeReceipt(demoPayment.orderId, demoPayment.amount, payload.merchantTransactionId),
+        raw: { success: true, code: "PAYMENT_SUCCESS", data: { state: "COMPLETED" } },
+      });
+    }
+
     const phonePeStatus = await verifyPhonePePayment(payload.merchantTransactionId);
     const payment = await PhonePePaymentModel.findByMerchantTransactionId(payload.merchantTransactionId);
 
@@ -175,6 +209,12 @@ export async function status(request: NextRequest) {
 export async function cancel(request: NextRequest) {
   try {
     const payload = cancelPhonePeSchema.parse(await request.json());
+
+    if (isSupabasePlaceholder()) {
+      demoPhonePePayments.delete(payload.merchantTransactionId);
+      return ok({ status: "FAILED", merchantTransactionId: payload.merchantTransactionId });
+    }
+
     const payment = await PhonePePaymentModel.findByMerchantTransactionId(payload.merchantTransactionId);
 
     if (!payment.data) {
@@ -236,6 +276,25 @@ function normalizePhonePeStatus(value: unknown, localStatus?: string) {
   if (localStatus === "COMPLETED" || isPhonePeSuccess(value)) return "COMPLETED";
   if (localStatus === "FAILED" || isPhonePeFailed(value)) return "FAILED";
   return "PENDING";
+}
+
+function createDemoPhonePeReceipt(orderId: string, amount: number, reference: string) {
+  return {
+    id: orderId,
+    order_number: `DEMO-PHONEPE-${Date.now()}`,
+    total_amount: amount,
+    amount_paid: amount,
+    change_due: 0,
+    created_at: new Date().toISOString(),
+    order_items: [],
+    payments: [
+      {
+        method: "PHONEPE_QR",
+        amount,
+        reference,
+      },
+    ],
+  };
 }
 
 const phonePeStatusResponseSchema = z.object({
