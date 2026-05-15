@@ -4,9 +4,17 @@ export const posOrderItemSchema = z.object({
   product_id: z.string().uuid(),
   variant_id: z.string().uuid().optional().nullable(),
   quantity: z.number().int().positive(),
-  unit_price: z.number().nonnegative().optional(),
+  unit_price: z.number().positive().optional(),
   tax_rate: z.number().min(0).optional(),
   discount: z.number().nonnegative().optional(),
+}).superRefine((item, context) => {
+  if (item.unit_price && (item.discount ?? 0) > item.unit_price * item.quantity) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Item discount cannot exceed line subtotal",
+      path: ["discount"],
+    });
+  }
 });
 
 export const posOrderPaymentSchema = z.object({

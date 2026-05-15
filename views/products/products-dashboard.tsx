@@ -248,37 +248,37 @@ export function ProductsDashboard() {
 
   return (
     <AppShell>
-      <AppHeader
-        eyebrow="Catalog Management"
+<AppHeader
+        eyebrow="Catalog"
         title="Products"
         action={
-          <Button size="lg" onClick={openCreateDrawer}>
+          <Button size="lg" className="gap-2 bg-slate-900 hover:bg-slate-800" onClick={openCreateDrawer}>
             <Plus className="size-4" />
             Add Product
           </Button>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+<div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <section className="space-y-4">
           <form
-            className="grid gap-3 rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_180px_auto]"
+            className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-[1fr_220px_180px_auto]"
             onSubmit={(event) => {
               event.preventDefault();
               void loadProducts();
             }}
           >
             <label className="relative block">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <input
-                className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 transition-all"
                 placeholder="Search by name, SKU, or barcode"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
             <select
-              className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+              className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 transition-all"
               value={categoryId}
               onChange={(event) => setCategoryId(event.target.value)}
             >
@@ -290,7 +290,7 @@ export function ProductsDashboard() {
               ))}
             </select>
             <select
-              className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+              className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 transition-all"
               value={isActive}
               onChange={(event) => setIsActive(event.target.value)}
             >
@@ -298,51 +298,51 @@ export function ProductsDashboard() {
               <option value="true">Active</option>
               <option value="false">Inactive</option>
             </select>
-            <Button type="submit" variant="outline" size="lg">
+            <Button type="submit" variant="outline" size="lg" className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900">
               <Filter className="size-4" />
               Filter
             </Button>
           </form>
 
-          {message ? <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
+          {message ? <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm">{message}</div> : null}
 
           {isLoading ? <PageLoader label="Loading products" /> : null}
 
-          <div className={isLoading ? "hidden" : "overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm"}>
-            <div className="grid grid-cols-[1.5fr_120px_140px_110px_120px] border-b border-emerald-100 bg-emerald-50/60 px-4 py-3 text-xs font-bold uppercase text-emerald-700">
+          <div className={isLoading ? "hidden" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"}>
+            <div className="grid grid-cols-[1.5fr_120px_140px_110px_120px] border-b border-slate-100 bg-slate-50/50 px-4 py-3 text-xs font-bold uppercase text-slate-500">
               <span>Product</span>
               <span>SKU</span>
               <span>Category</span>
               <span>Price</span>
               <span className="text-right">Actions</span>
             </div>
-            <div className="divide-y">
+            <div className="divide-y divide-slate-50">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="grid grid-cols-[1.5fr_120px_140px_110px_120px] items-center px-4 py-3 text-sm"
+                  className="grid grid-cols-[1.5fr_120px_140px_110px_120px] items-center px-4 py-3 text-sm hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-100 bg-emerald-50">
+                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                       {product.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={product.image_url} alt="" className="size-full object-cover" />
                       ) : (
-                        <Layers3 className="size-4 text-muted-foreground" />
+                        <Layers3 className="size-4 text-slate-400" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-semibold text-slate-900">{product.name}</p>
+                      <p className="text-xs text-slate-500">
                         {product.is_active ? "Active" : "Inactive"} · {product.product_variants?.length ?? 0} variants
                       </p>
                     </div>
                   </div>
-                  <span>{product.sku}</span>
-                  <span className="truncate">{product.categories?.name ?? "Unassigned"}</span>
-                  <span>Rs {product.selling_price}</span>
+                  <span className="text-slate-600">{product.sku}</span>
+                  <span className="truncate text-slate-600">{product.categories?.name ?? "Unassigned"}</span>
+                  <span className="font-semibold text-slate-900">Rs {product.selling_price}</span>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="icon-sm" onClick={() => openEditDrawer(product)}>
+                    <Button variant="outline" size="icon-sm" className="border-slate-200 hover:bg-slate-100" onClick={() => openEditDrawer(product)}>
                       <Edit className="size-4" />
                     </Button>
                     <Button variant="destructive" size="icon-sm" onClick={() => void deleteProduct(product)}>
@@ -352,7 +352,7 @@ export function ProductsDashboard() {
                 </div>
               ))}
               {products.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <div className="px-4 py-10 text-center text-sm text-slate-400">
                   {isLoading ? "Loading products" : "No products found"}
                 </div>
               ) : null}
@@ -360,14 +360,14 @@ export function ProductsDashboard() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm">
-          <div className="mb-4">
-            <p className="text-sm text-muted-foreground">Nested Categories</p>
-            <h2 className="text-base font-semibold">Category Manager</h2>
+        <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Manage</p>
+            <h2 className="text-lg font-bold text-slate-900 mt-1">Categories</h2>
           </div>
           <form className="space-y-3" onSubmit={(event) => void submitCategory(event)}>
             <input
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 transition-all"
               placeholder="Category name"
               value={categoryForm.name}
               onChange={(event) =>
@@ -379,13 +379,13 @@ export function ProductsDashboard() {
               }
             />
             <input
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 transition-all"
               placeholder="category-slug"
               value={categoryForm.slug}
               onChange={(event) => setCategoryForm((current) => ({ ...current, slug: event.target.value }))}
             />
             <select
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 transition-all"
               value={categoryForm.parent_id}
               onChange={(event) => setCategoryForm((current) => ({ ...current, parent_id: event.target.value }))}
             >
@@ -396,14 +396,14 @@ export function ProductsDashboard() {
                 </option>
               ))}
             </select>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800">
               <Plus className="size-4" />
               Add Category
             </Button>
           </form>
           <div className="mt-5 space-y-2">
             {categoryOptions.map((category) => (
-              <div key={category.id} className="rounded-xl border border-emerald-100 px-3 py-2 text-sm">
+              <div key={category.id} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors">
                 {category.label}
               </div>
             ))}
@@ -411,21 +411,21 @@ export function ProductsDashboard() {
         </aside>
       </div>
 
-      {isDrawerOpen ? (
-        <div className="fixed inset-0 z-50 bg-emerald-950/30 backdrop-blur-sm">
-          <div className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-xl">
-            <form className="space-y-5 p-6" onSubmit={(event) => void submitProduct(event)}>
-              <div className="flex items-center justify-between">
+{isDrawerOpen ? (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm">
+          <div className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl">
+            <form className="space-y-6 p-6" onSubmit={(event) => void submitProduct(event)}>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{form.id ? "Edit Product" : "New Product"}</p>
-                  <h2 className="text-xl font-semibold">Catalog Details</h2>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{form.id ? "Edit" : "Create"}</p>
+                  <h2 className="text-xl font-bold text-slate-900">Product Details</h2>
                 </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => setIsDrawerOpen(false)}>
-                  <X className="size-4" />
+                <Button type="button" variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600" onClick={() => setIsDrawerOpen(false)}>
+                  <X className="size-5" />
                 </Button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Name">
                   <input className="input" value={form.name} onChange={(event) => updateForm("name", event.target.value)} />
                 </Field>
@@ -460,60 +460,60 @@ export function ProductsDashboard() {
                 <Field label="Tax Rate">
                   <input className="input" type="number" min="0" step="0.01" value={form.tax_rate} onChange={(event) => updateForm("tax_rate", event.target.value)} />
                 </Field>
-                <div className="flex items-end gap-4">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={form.discountable} onChange={(event) => updateForm("discountable", event.target.checked)} />
+                <div className="flex items-end gap-6">
+                  <label className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
+                    <input type="checkbox" className="rounded border-slate-300" checked={form.discountable} onChange={(event) => updateForm("discountable", event.target.checked)} />
                     Discountable
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={form.is_active} onChange={(event) => updateForm("is_active", event.target.checked)} />
+                  <label className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
+                    <input type="checkbox" className="rounded border-slate-300" checked={form.is_active} onChange={(event) => updateForm("is_active", event.target.checked)} />
                     Active
                   </label>
                 </div>
               </div>
 
               <Field label="Description">
-                <textarea className="input min-h-20 py-2" value={form.description} onChange={(event) => updateForm("description", event.target.value)} />
+                <textarea className="input min-h-24 py-2.5 resize-none" value={form.description} onChange={(event) => updateForm("description", event.target.value)} />
               </Field>
 
               {form.id ? (
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed px-4 py-5 text-sm">
-                  <ImagePlus className="size-4" />
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-6 text-sm font-medium text-slate-500 hover:border-slate-400 hover:bg-slate-50 transition-all">
+                  <ImagePlus className="size-5" />
                   Upload product image
                   <input className="hidden" type="file" accept="image/*" onChange={(event) => void uploadImage(event.target.files?.[0] ?? null)} />
                 </label>
               ) : null}
 
-              <div className="rounded-[20px] border border-emerald-100">
-                <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
-                  <h3 className="font-medium">Variants</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+              <div className="rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
+                  <h3 className="font-bold text-slate-900">Product Variants</h3>
+                  <Button type="button" variant="outline" size="sm" className="gap-2" onClick={addVariant}>
                     <Plus className="size-4" />
-                    Add Variant
+                    Add
                   </Button>
                 </div>
                 <div className="space-y-3 p-4">
                   {form.variants.map((variant, index) => (
-                    <div key={`${variant.sku}-${index}`} className="grid gap-2 rounded-xl border border-emerald-100 p-3 sm:grid-cols-[1fr_1fr_100px_auto]">
-                      <input className="input" placeholder="Name" value={variant.name} onChange={(event) => updateVariant(index, "name", event.target.value)} />
-                      <input className="input" placeholder="SKU" value={variant.sku} onChange={(event) => updateVariant(index, "sku", event.target.value)} />
-                      <input className="input" type="number" step="0.01" placeholder="+/- Rs" value={variant.price_modifier} onChange={(event) => updateVariant(index, "price_modifier", Number(event.target.value))} />
-                      <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeVariant(index)}>
+                    <div key={`${variant.sku}-${index}`} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_100px_auto]">
+                      <input className="input bg-white" placeholder="Name" value={variant.name} onChange={(event) => updateVariant(index, "name", event.target.value)} />
+                      <input className="input bg-white" placeholder="SKU" value={variant.sku} onChange={(event) => updateVariant(index, "sku", event.target.value)} />
+                      <input className="input bg-white" type="number" step="0.01" placeholder="+/- Rs" value={variant.price_modifier} onChange={(event) => updateVariant(index, "price_modifier", Number(event.target.value))} />
+                      <Button type="button" variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600" onClick={() => removeVariant(index)}>
                         <X className="size-4" />
                       </Button>
                     </div>
                   ))}
                   {form.variants.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No variants configured.</p>
+                    <p className="text-sm text-slate-400 py-2">No variants configured. Add variants for different sizes, colors, etc.</p>
                   ) : null}
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 border-t border-emerald-100 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDrawerOpen(false)}>
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+                <Button type="button" variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsDrawerOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">{form.id ? "Save Changes" : "Create Product"}</Button>
+                <Button type="submit" className="bg-slate-900 hover:bg-slate-800">{form.id ? "Save Changes" : "Create Product"}</Button>
               </div>
             </form>
           </div>

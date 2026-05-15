@@ -48,6 +48,10 @@ export async function create(request: NextRequest) {
     }
 
     if (payload.paymentMethod === "ESEWA_QR") {
+      if (roundMoney(payload.amountTendered) !== total) {
+        return fail(new Error("Payment amount must equal order total"), 400);
+      }
+
       const stock = await OrderModel.validateStock(payload);
 
       if (!stock.ok) {
@@ -91,6 +95,10 @@ export async function create(request: NextRequest) {
 
     if (payload.amountTendered < total) {
       return fail(new Error("Payment amount is less than order total"), 400);
+    }
+
+    if (payload.paymentMethod !== "CASH" && roundMoney(payload.amountTendered) !== total) {
+      return fail(new Error("Payment amount must equal order total"), 400);
     }
 
     const stock = await OrderModel.validateStock(payload);
