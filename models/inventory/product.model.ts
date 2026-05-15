@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CreateProductInput, ProductQuery, UpdateProductInput } from "@/schemas/product.schema";
 
 export type ProductRow = {
@@ -26,7 +26,7 @@ export type ProductRow = {
 };
 
 export async function findAll(filters: ProductQuery) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 20;
   const from = (page - 1) * limit;
@@ -57,7 +57,7 @@ export async function findAll(filters: ProductQuery) {
 }
 
 export async function findById(id: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("products")
@@ -68,7 +68,7 @@ export async function findById(id: string) {
 }
 
 export async function findBySku(sku: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("products")
@@ -79,7 +79,7 @@ export async function findBySku(sku: string) {
 }
 
 export async function create(input: CreateProductInput) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { variants, ...product } = input;
 
   const created = await supabase.from("products").insert(product).select("*").single();
@@ -103,7 +103,7 @@ export async function create(input: CreateProductInput) {
 }
 
 export async function update(id: string, input: UpdateProductInput) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { variants, ...product } = input;
 
   const updated = await supabase
@@ -140,7 +140,7 @@ export async function update(id: string, input: UpdateProductInput) {
 }
 
 export async function softDelete(id: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("products")
@@ -152,7 +152,7 @@ export async function softDelete(id: string) {
 }
 
 export async function updateImage(id: string, imageUrl: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("products")

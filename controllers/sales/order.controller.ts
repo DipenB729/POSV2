@@ -47,6 +47,48 @@ export async function create(request: NextRequest) {
       return ok(receipt.data, { status: 201 });
     }
 
+    if (payload.paymentMethod === "ESEWA_QR") {
+      const stock = await OrderModel.validateStock(payload);
+
+      if (!stock.ok) {
+        return fail(new Error(stock.error), 409);
+      }
+
+      const orderId = await createPosOrder({
+        storeId: payload.storeId,
+        customerId: payload.customerId,
+        items: payload.items.map((item) => ({
+          product_id: item.productId,
+          variant_id: item.variantId ?? null,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          tax_rate: item.taxRate,
+          discount: item.discount ?? 0,
+        })),
+        payments: [
+          {
+            method: "ESEWA_QR",
+            amount: total,
+            status: "COMPLETED",
+            reference: payload.paymentReference ?? "manual-esewa",
+            metadata: {
+              manualConfirmation: true,
+              discount: payload.discount ?? null,
+            },
+          },
+        ],
+        notes: payload.notes,
+      });
+
+      const receipt = await OrderModel.findReceipt(orderId);
+
+      if (receipt.error) {
+        throw receipt.error;
+      }
+
+      return ok(receipt.data, { status: 201 });
+    }
+
     if (payload.amountTendered < total) {
       return fail(new Error("Payment amount is less than order total"), 400);
     }
@@ -100,7 +142,7 @@ function roundMoney(value: number) {
 }
 
 function createDemoReceipt(payload: TerminalOrderInput, total: number) {
-  const amountPaid = payload.paymentMethod === "CASH" ? payload.amountTendered : 0;
+  const amountPaid = payload.paymentMethod === "CASH" || payload.paymentMethod === "ESEWA_QR" ? payload.amountTendered || total : 0;
   const orderId = crypto.randomUUID();
 
   return {
@@ -121,10 +163,10 @@ function createDemoReceipt(payload: TerminalOrderInput, total: number) {
       line_total: roundMoney(item.unitPrice * item.quantity * (1 + item.taxRate / 100) - (item.discount ?? 0)),
     })),
     payments:
-      payload.paymentMethod === "CASH"
+      payload.paymentMethod === "CASH" || payload.paymentMethod === "ESEWA_QR"
         ? [
             {
-              method: "CASH",
+              method: payload.paymentMethod,
               amount: total,
               reference: payload.paymentReference ?? null,
             },

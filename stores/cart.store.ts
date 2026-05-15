@@ -18,7 +18,7 @@ type CartDiscount = {
   amount: number;
 };
 
-export type PaymentMethod = "CASH" | "PHONEPE_QR";
+export type PaymentMethod = "CASH" | "PHONEPE_QR" | "ESEWA_QR";
 
 export type CartState = {
   items: CartItem[];

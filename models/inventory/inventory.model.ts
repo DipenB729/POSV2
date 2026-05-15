@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type {
   InventoryAdjustmentInput,
   InventoryQuery,
@@ -21,7 +21,7 @@ export type InventoryItemRow = {
 };
 
 export async function findAll(filters: InventoryQuery) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 50;
   const from = (page - 1) * limit;
@@ -61,7 +61,7 @@ export async function findAll(filters: InventoryQuery) {
 }
 
 export async function findById(id: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("inventory_items")
@@ -72,7 +72,7 @@ export async function findById(id: string) {
 }
 
 export async function findMovements(filters: MovementHistoryQuery) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 50;
   const from = (page - 1) * limit;
@@ -92,7 +92,7 @@ export async function findMovements(filters: MovementHistoryQuery) {
 }
 
 export async function recordMovement(input: InventoryAdjustmentInput, performedById: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase.rpc("record_inventory_movement", {
     p_inventory_item_id: input.inventoryItemId,

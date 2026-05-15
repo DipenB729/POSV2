@@ -10,12 +10,10 @@ import {
   ReceiptText,
   Settings,
   ShoppingCart,
-  Store,
   WalletCards,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/app-shell";
+import { AppHeader, AppShell } from "@/components/app-shell";
 
 const modules = [
   { label: "Terminal", href: "/terminal", icon: ShoppingCart, metric: "Open counter", tone: "bg-slate-950 text-white" },
@@ -34,14 +32,14 @@ const activity = [
 
 export function MainDashboard() {
   return (
-    <main className="min-h-screen bg-[#f7f8fa] text-foreground">
+    <AppShell>
       <AppHeader
         eyebrow="Main Branch"
         title="POS System"
         action={
           <Link
             href="/terminal"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 text-sm font-bold text-white hover:bg-emerald-600"
           >
             <ReceiptText className="size-4" />
             New Sale
@@ -49,7 +47,7 @@ export function MainDashboard() {
         }
       />
 
-      <div className="mx-auto max-w-7xl space-y-6 px-6 py-6">
+      <div className="space-y-6">
         <section className="grid gap-4 md:grid-cols-4">
           <Metric icon={WalletCards} label="Revenue Today" value="Rs 84,520" />
           <Metric icon={ReceiptText} label="Orders" value="138" />
@@ -66,9 +64,9 @@ export function MainDashboard() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="group rounded-lg border bg-white p-4 transition hover:border-slate-400 hover:shadow-sm"
+                    className="group rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/10"
                   >
-                    <div className={`mb-5 flex size-10 items-center justify-center rounded-md ${item.tone}`}>
+                    <div className={`mb-5 flex size-10 items-center justify-center rounded-xl ${item.tone}`}>
                       <Icon className="size-5" />
                     </div>
                     <div className="flex items-center justify-between gap-2">
@@ -83,15 +81,15 @@ export function MainDashboard() {
               })}
             </div>
 
-            <div className="rounded-lg border bg-white">
-              <div className="flex items-center justify-between border-b px-5 py-4">
+            <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-emerald-100 px-5 py-4">
                 <div>
                   <h2 className="font-semibold">Open Work</h2>
                   <p className="text-sm text-muted-foreground">Today</p>
                 </div>
                 <Link
                   href="/inventory"
-                  className="inline-flex h-7 items-center rounded-lg border px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                  className="inline-flex h-9 items-center rounded-full border border-emerald-200 px-3 text-[0.8rem] font-bold text-emerald-700 hover:bg-emerald-50"
                 >
                   Review Stock
                 </Link>
@@ -104,8 +102,8 @@ export function MainDashboard() {
             </div>
           </div>
 
-          <aside className="rounded-lg border bg-white">
-            <div className="flex items-center gap-2 border-b px-5 py-4">
+          <aside className="overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm">
+            <div className="flex items-center gap-2 border-b border-emerald-100 px-5 py-4">
               <ClipboardList className="size-4" />
               <h2 className="font-semibold">Activity</h2>
             </div>
@@ -121,14 +119,14 @@ export function MainDashboard() {
           </aside>
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }
 
 function Metric({ icon: Icon, label, value }: { icon: typeof WalletCards; label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="mb-4 flex size-9 items-center justify-center rounded-md bg-slate-100 text-slate-950">
+    <div className="rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
         <Icon className="size-4" />
       </div>
       <p className="text-sm text-muted-foreground">{label}</p>

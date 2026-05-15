@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 type ReportScope = {
   storeId?: string | null;
@@ -7,7 +7,7 @@ type ReportScope = {
 };
 
 function scopedOrders(scope: ReportScope) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   let query = supabase.from("orders").select("*").is("deleted_at", null);
 
   if (scope.storeId) query = query.eq("store_id", scope.storeId);
@@ -20,7 +20,7 @@ function scopedOrders(scope: ReportScope) {
 export async function salesSummary(scope: Required<Pick<ReportScope, "from" | "to">> & Pick<ReportScope, "storeId">) {
   const [ordersResult, refundsResult] = await Promise.all([
     scopedOrders(scope),
-    createSupabaseServerClient()
+    createSupabaseAdminClient()
       .from("refunds")
       .select("amount, orders!inner(store_id, created_at)")
       .gte("created_at", scope.from)
@@ -68,7 +68,7 @@ export async function revenueByPeriod(scope: { storeId?: string | null; period: 
 }
 
 export async function topProducts(scope: { storeId?: string | null; from: string; to: string; limit: number }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("order_items")
     .select("product_id, name, quantity, line_total, orders!inner(store_id, created_at)")
@@ -97,7 +97,7 @@ export async function topProducts(scope: { storeId?: string | null; from: string
 }
 
 export async function inventoryValuation(scope: { storeId?: string | null }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("inventory_items")
     .select("quantity, products!inner(cost_price, selling_price)")

@@ -1,8 +1,8 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { TerminalOrderInput } from "@/schemas/terminal-order.schema";
 
 export async function validateStock(input: TerminalOrderInput) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const productIds = input.items.map((item) => item.productId);
 
   const { data, error } = await supabase
@@ -37,7 +37,7 @@ export async function validateStock(input: TerminalOrderInput) {
 }
 
 export async function findReceipt(orderId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("orders")
@@ -47,7 +47,7 @@ export async function findReceipt(orderId: string) {
 }
 
 export async function createPendingPhonePeOrder(input: TerminalOrderInput, totalDiscount: number) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase.rpc("create_pending_phonepe_order", {
     p_store_id: input.storeId,
@@ -67,7 +67,7 @@ export async function createPendingPhonePeOrder(input: TerminalOrderInput, total
 }
 
 export async function findById(orderId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase.from("orders").select("*").eq("id", orderId).single();
 }

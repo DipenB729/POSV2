@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { CategoryQuery, CreateCategoryInput, UpdateCategoryInput } from "@/schemas/category.schema";
 
 export type CategoryRow = {
@@ -14,7 +14,7 @@ export type CategoryRow = {
 };
 
 export async function findAll(filters: CategoryQuery) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   let query = supabase
     .from("categories")
@@ -37,7 +37,7 @@ export async function findAll(filters: CategoryQuery) {
 }
 
 export async function findById(id: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("categories")
@@ -48,7 +48,7 @@ export async function findById(id: string) {
 }
 
 export async function findBySlug(slug: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("categories")
@@ -59,13 +59,13 @@ export async function findBySlug(slug: string) {
 }
 
 export async function create(input: CreateCategoryInput) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase.from("categories").insert(input).select("*").single();
 }
 
 export async function update(id: string, input: UpdateCategoryInput) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("categories")
@@ -77,7 +77,7 @@ export async function update(id: string, input: UpdateCategoryInput) {
 }
 
 export async function softDelete(id: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   return supabase
     .from("categories")

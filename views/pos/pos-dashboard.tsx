@@ -1,6 +1,7 @@
 import { Activity, Banknote, Boxes, CreditCard, ReceiptText, ShoppingCart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { AppHeader, AppShell } from "@/components/app-shell";
 
 const products = [
   { name: "Americano", sku: "DRK-101", stock: 48, price: "Rs 180" },
@@ -17,14 +18,12 @@ const cart = [
 
 export function PosDashboard() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Enterprise POS</p>
-            <h1 className="text-2xl font-semibold tracking-normal">Checkout Console</h1>
-          </div>
-          <div className="flex items-center gap-2">
+    <AppShell>
+      <AppHeader
+        eyebrow="Enterprise POS"
+        title="Checkout Console"
+        action={
+          <>
             <Button variant="outline" size="lg">
               <Activity className="size-4" />
               Shift Open
@@ -33,11 +32,11 @@ export function PosDashboard() {
               <ReceiptText className="size-4" />
               New Sale
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <section className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <Metric icon={Banknote} label="Today Revenue" value="Rs 84,520" />
@@ -45,8 +44,8 @@ export function PosDashboard() {
             <Metric icon={Boxes} label="Low Stock" value="7 SKUs" />
           </div>
 
-          <div className="rounded-lg border bg-white">
-            <div className="flex items-center justify-between border-b px-5 py-4">
+          <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-emerald-100 px-5 py-4">
               <h2 className="text-base font-semibold">Product Register</h2>
               <Button variant="outline" size="sm">
                 Scan Barcode
@@ -73,8 +72,8 @@ export function PosDashboard() {
           </div>
         </section>
 
-        <aside className="rounded-lg border bg-white">
-          <div className="border-b px-5 py-4">
+        <aside className="overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm">
+          <div className="border-b border-emerald-100 px-5 py-4">
             <h2 className="text-base font-semibold">Current Cart</h2>
             <p className="text-sm text-muted-foreground">Counter A, cashier session active</p>
           </div>
@@ -109,7 +108,7 @@ export function PosDashboard() {
           </div>
         </aside>
       </div>
-    </main>
+    </AppShell>
   );
 }
 
@@ -123,8 +122,8 @@ function Metric({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border bg-white p-5">
-      <div className="mb-4 flex size-9 items-center justify-center rounded-md bg-slate-900 text-white">
+    <div className="rounded-[20px] border border-emerald-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex size-9 items-center justify-center rounded-xl bg-emerald-500 text-white">
         <Icon className="size-4" />
       </div>
       <p className="text-sm text-muted-foreground">{label}</p>

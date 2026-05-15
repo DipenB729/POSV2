@@ -4,7 +4,8 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Edit, Filter, ImagePlus, Layers3, Plus, Search, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/app-shell";
+import { AppHeader, AppShell } from "@/components/app-shell";
+import { PageLoader } from "@/components/page-loader";
 
 type ApiResponse<T> =
   | { ok: true; data: T; meta?: { total?: number; page?: number; limit?: number } }
@@ -246,7 +247,7 @@ export function ProductsDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <AppShell>
       <AppHeader
         eyebrow="Catalog Management"
         title="Products"
@@ -258,10 +259,10 @@ export function ProductsDashboard() {
         }
       />
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <section className="space-y-4">
           <form
-            className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-[1fr_220px_180px_auto]"
+            className="grid gap-3 rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_180px_auto]"
             onSubmit={(event) => {
               event.preventDefault();
               void loadProducts();
@@ -303,10 +304,12 @@ export function ProductsDashboard() {
             </Button>
           </form>
 
-          {message ? <div className="rounded-md border bg-white px-4 py-3 text-sm">{message}</div> : null}
+          {message ? <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
 
-          <div className="overflow-hidden rounded-lg border bg-white">
-            <div className="grid grid-cols-[1.5fr_120px_140px_110px_120px] border-b bg-muted/50 px-4 py-3 text-xs font-medium uppercase text-muted-foreground">
+          {isLoading ? <PageLoader label="Loading products" /> : null}
+
+          <div className={isLoading ? "hidden" : "overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm"}>
+            <div className="grid grid-cols-[1.5fr_120px_140px_110px_120px] border-b border-emerald-100 bg-emerald-50/60 px-4 py-3 text-xs font-bold uppercase text-emerald-700">
               <span>Product</span>
               <span>SKU</span>
               <span>Category</span>
@@ -320,7 +323,7 @@ export function ProductsDashboard() {
                   className="grid grid-cols-[1.5fr_120px_140px_110px_120px] items-center px-4 py-3 text-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-100 bg-emerald-50">
                       {product.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={product.image_url} alt="" className="size-full object-cover" />
@@ -357,7 +360,7 @@ export function ProductsDashboard() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-lg border bg-white p-4">
+        <aside className="h-fit rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm">
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">Nested Categories</p>
             <h2 className="text-base font-semibold">Category Manager</h2>
@@ -400,7 +403,7 @@ export function ProductsDashboard() {
           </form>
           <div className="mt-5 space-y-2">
             {categoryOptions.map((category) => (
-              <div key={category.id} className="rounded-md border px-3 py-2 text-sm">
+              <div key={category.id} className="rounded-xl border border-emerald-100 px-3 py-2 text-sm">
                 {category.label}
               </div>
             ))}
@@ -409,7 +412,7 @@ export function ProductsDashboard() {
       </div>
 
       {isDrawerOpen ? (
-        <div className="fixed inset-0 z-50 bg-black/30">
+        <div className="fixed inset-0 z-50 bg-emerald-950/30 backdrop-blur-sm">
           <div className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-xl">
             <form className="space-y-5 p-6" onSubmit={(event) => void submitProduct(event)}>
               <div className="flex items-center justify-between">
@@ -481,8 +484,8 @@ export function ProductsDashboard() {
                 </label>
               ) : null}
 
-              <div className="rounded-lg border">
-                <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="rounded-[20px] border border-emerald-100">
+                <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
                   <h3 className="font-medium">Variants</h3>
                   <Button type="button" variant="outline" size="sm" onClick={addVariant}>
                     <Plus className="size-4" />
@@ -491,7 +494,7 @@ export function ProductsDashboard() {
                 </div>
                 <div className="space-y-3 p-4">
                   {form.variants.map((variant, index) => (
-                    <div key={`${variant.sku}-${index}`} className="grid gap-2 rounded-md border p-3 sm:grid-cols-[1fr_1fr_100px_auto]">
+                    <div key={`${variant.sku}-${index}`} className="grid gap-2 rounded-xl border border-emerald-100 p-3 sm:grid-cols-[1fr_1fr_100px_auto]">
                       <input className="input" placeholder="Name" value={variant.name} onChange={(event) => updateVariant(index, "name", event.target.value)} />
                       <input className="input" placeholder="SKU" value={variant.sku} onChange={(event) => updateVariant(index, "sku", event.target.value)} />
                       <input className="input" type="number" step="0.01" placeholder="+/- Rs" value={variant.price_modifier} onChange={(event) => updateVariant(index, "price_modifier", Number(event.target.value))} />
@@ -506,7 +509,7 @@ export function ProductsDashboard() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 border-t pt-4">
+              <div className="flex justify-end gap-2 border-t border-emerald-100 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDrawerOpen(false)}>
                   Cancel
                 </Button>
@@ -516,7 +519,7 @@ export function ProductsDashboard() {
           </div>
         </div>
       ) : null}
-    </main>
+    </AppShell>
   );
 
   function updateForm<Key extends keyof ProductForm>(key: Key, value: ProductForm[Key]) {

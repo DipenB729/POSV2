@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Download, Filter, History, PackageCheck, Plus, Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/app-shell";
+import { AppHeader, AppShell } from "@/components/app-shell";
+import { PageLoader } from "@/components/page-loader";
 
 type ApiResponse<T> =
   | { ok: true; data: T; meta?: { total?: number; page?: number; limit?: number } }
@@ -183,7 +184,7 @@ export function InventoryDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <AppShell>
       <AppHeader
         eyebrow="Inventory Management"
         title="Stock Control"
@@ -195,10 +196,10 @@ export function InventoryDashboard() {
         }
       />
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <section className="space-y-4">
           {lowStockItems.length > 0 ? (
-            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
               <AlertTriangle className="mt-0.5 size-4" />
               <div>
                 <p className="font-medium">{lowStockItems.length} low-stock items need attention</p>
@@ -207,10 +208,10 @@ export function InventoryDashboard() {
             </div>
           ) : null}
 
-          {message ? <div className="rounded-md border bg-white px-4 py-3 text-sm">{message}</div> : null}
+          {message ? <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
 
           <form
-            className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-[1fr_auto_auto]"
+            className="grid gap-3 rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto_auto]"
             onSubmit={(event) => {
               event.preventDefault();
               void loadInventory();
@@ -225,7 +226,7 @@ export function InventoryDashboard() {
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
-            <label className="flex h-10 items-center gap-2 rounded-md border px-3 text-sm">
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-emerald-100 px-3 text-sm">
               <input
                 type="checkbox"
                 checked={lowStockOnly}
@@ -239,8 +240,10 @@ export function InventoryDashboard() {
             </Button>
           </form>
 
-          <div className="overflow-hidden rounded-lg border bg-white">
-            <div className="grid grid-cols-[1.5fr_110px_120px_120px_130px] border-b bg-muted/50 px-4 py-3 text-xs font-medium uppercase text-muted-foreground">
+          {isLoading ? <PageLoader label="Loading inventory" /> : null}
+
+          <div className={isLoading ? "hidden" : "overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm"}>
+            <div className="grid grid-cols-[1.5fr_110px_120px_120px_130px] border-b border-emerald-100 bg-emerald-50/60 px-4 py-3 text-xs font-bold uppercase text-emerald-700">
               <span>Product</span>
               <span>Store</span>
               <span>Quantity</span>
@@ -257,7 +260,7 @@ export function InventoryDashboard() {
                     className="grid grid-cols-[1.5fr_110px_120px_120px_130px] items-center px-4 py-3 text-sm"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-md border bg-muted">
+                      <div className="flex size-10 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
                         <PackageCheck className="size-4 text-muted-foreground" />
                       </div>
                       <div>
@@ -290,8 +293,8 @@ export function InventoryDashboard() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-lg border bg-white">
-          <div className="flex items-center gap-2 border-b px-4 py-3">
+        <aside className="h-fit overflow-hidden rounded-[20px] border border-emerald-100 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-emerald-100 px-4 py-3">
             <History className="size-4" />
             <h2 className="font-semibold">Movement History</h2>
           </div>
@@ -325,8 +328,8 @@ export function InventoryDashboard() {
       </div>
 
       {selectedItem ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <form className="w-full max-w-md space-y-4 rounded-lg bg-white p-5 shadow-xl" onSubmit={(event) => void submitAdjustment(event)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/30 p-4 backdrop-blur-sm">
+          <form className="w-full max-w-md space-y-4 rounded-[24px] bg-white p-5 shadow-xl" onSubmit={(event) => void submitAdjustment(event)}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Manual Stock Adjustment</p>
@@ -372,11 +375,11 @@ export function InventoryDashboard() {
               />
             </label>
 
-            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm">
               Current quantity: <span className="font-semibold">{selectedItem.quantity}</span>
             </div>
 
-            <div className="flex justify-end gap-2 border-t pt-4">
+            <div className="flex justify-end gap-2 border-t border-emerald-100 pt-4">
               <Button type="button" variant="outline" onClick={() => setSelectedItem(null)}>
                 Cancel
               </Button>
@@ -385,7 +388,7 @@ export function InventoryDashboard() {
           </form>
         </div>
       ) : null}
-    </main>
+    </AppShell>
   );
 }
 

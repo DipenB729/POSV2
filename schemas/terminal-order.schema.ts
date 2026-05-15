@@ -21,7 +21,7 @@ export const terminalOrderSchema = z.object({
     })
     .optional(),
   notes: z.string().max(1000).optional().nullable(),
-  paymentMethod: z.enum(["CASH", "PHONEPE_QR"]),
+  paymentMethod: z.enum(["CASH", "PHONEPE_QR", "ESEWA_QR"]),
   paymentReference: z.string().optional().nullable(),
   amountTendered: z.number().nonnegative(),
   items: z.array(terminalOrderItemSchema).min(1),

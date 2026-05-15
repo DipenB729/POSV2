@@ -10,7 +10,7 @@ export const posOrderItemSchema = z.object({
 });
 
 export const posOrderPaymentSchema = z.object({
-  method: z.enum(["CASH", "CARD", "PHONEPE_QR", "MOBILE_MONEY", "GIFT_CARD", "CREDIT"]),
+  method: z.enum(["CASH", "CARD", "PHONEPE_QR", "ESEWA_QR", "MOBILE_MONEY", "GIFT_CARD", "CREDIT"]),
   amount: z.number().positive(),
   status: z.enum(["PENDING", "COMPLETED", "FAILED", "REFUNDED"]).optional(),
   reference: z.string().optional(),
@@ -30,7 +30,7 @@ export const createOrderRefundRpcSchema = z.object({
   orderId: z.string().uuid(),
   amount: z.number().positive(),
   reason: z.string().min(1),
-  method: z.enum(["CASH", "CARD", "PHONEPE_QR", "MOBILE_MONEY", "GIFT_CARD", "CREDIT"]),
+  method: z.enum(["CASH", "CARD", "PHONEPE_QR", "ESEWA_QR", "MOBILE_MONEY", "GIFT_CARD", "CREDIT"]),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 

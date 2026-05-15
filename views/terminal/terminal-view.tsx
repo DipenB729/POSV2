@@ -18,7 +18,11 @@ import {
   PackageSearch,
   Phone,
   Plus,
+  Printer,
+  QrCode,
   ReceiptText,
+  RotateCcw,
+  ScanLine,
   Search,
   Settings,
   ShoppingBag,
@@ -31,6 +35,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PageLoader } from "@/components/page-loader";
 import { CartItem, PaymentMethod, roundMoney, useCartStore } from "@/stores/cartStore";
 
 type ApiResponse<T> =
@@ -101,6 +106,18 @@ type Receipt = {
   }>;
 };
 
+type HeldOrder = {
+  id: string;
+  createdAt: string;
+  items: CartItem[];
+  customerId?: string;
+  discount?: { code: string; amount: number };
+  note?: string;
+  storeId: string;
+};
+
+const heldOrdersKey = "posv2-held-orders";
+
 const sideNav = [
   { label: "Home", href: "/", icon: Home },
   { label: "Menu", href: "/terminal", icon: Utensils },
@@ -137,6 +154,8 @@ export function TerminalView() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
 
   const stores = useMemo(() => {
     const ids = new Set<string>();
@@ -167,6 +186,7 @@ export function TerminalView() {
 
   useEffect(() => {
     void loadData();
+    setHeldOrders(readHeldOrders());
   }, []);
 
   useEffect(() => {
@@ -176,18 +196,23 @@ export function TerminalView() {
   }, [storeId, stores]);
 
   async function loadData() {
-    const [productResponse, categoryResponse, customerResponse] = await Promise.all([
-      fetch("/api/products?limit=100&isActive=true", { cache: "no-store" }),
-      fetch("/api/categories", { cache: "no-store" }),
-      fetch("/api/customers", { cache: "no-store" }),
-    ]);
-    const productPayload = (await productResponse.json()) as ApiResponse<Product[]>;
-    const categoryPayload = (await categoryResponse.json()) as ApiResponse<Category[]>;
-    const customerPayload = (await customerResponse.json()) as ApiResponse<Customer[]>;
+    setIsLoading(true);
+    try {
+      const [productResponse, categoryResponse, customerResponse] = await Promise.all([
+        fetch("/api/products?limit=100&isActive=true", { cache: "no-store" }),
+        fetch("/api/categories", { cache: "no-store" }),
+        fetch("/api/customers", { cache: "no-store" }),
+      ]);
+      const productPayload = (await productResponse.json()) as ApiResponse<Product[]>;
+      const categoryPayload = (await categoryResponse.json()) as ApiResponse<Category[]>;
+      const customerPayload = (await customerResponse.json()) as ApiResponse<Customer[]>;
 
-    if (productPayload.ok) setProducts(productPayload.data);
-    if (categoryPayload.ok) setCategories(categoryPayload.data);
-    if (customerPayload.ok) setCustomers(customerPayload.data);
+      if (productPayload.ok) setProducts(productPayload.data);
+      if (categoryPayload.ok) setCategories(categoryPayload.data);
+      if (customerPayload.ok) setCustomers(customerPayload.data);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function stockFor(product: Product) {
@@ -259,9 +284,67 @@ export function TerminalView() {
     setMessage("Discount applied");
   }
 
+  function holdCurrentOrder() {
+    if (items.length === 0) return;
+
+    const heldOrder: HeldOrder = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      items,
+      customerId,
+      discount,
+      note,
+      storeId,
+    };
+    const nextOrders = [heldOrder, ...heldOrders].slice(0, 10);
+    writeHeldOrders(nextOrders);
+    setHeldOrders(nextOrders);
+    clearCart();
+    setDiscountCode("");
+    setDiscountAmount("0");
+    setMessage("Order held");
+  }
+
+  function restoreHeldOrder(order: HeldOrder) {
+    clearCart();
+    order.items.forEach((item) => addItem(item));
+    setCustomer(order.customerId);
+    if (order.discount) {
+      applyDiscount(order.discount);
+      setDiscountCode(order.discount.code);
+      setDiscountAmount(String(order.discount.amount));
+    } else {
+      setDiscountCode("");
+      setDiscountAmount("0");
+    }
+    setNote(order.note);
+    setStoreId(order.storeId);
+
+    const nextOrders = heldOrders.filter((item) => item.id !== order.id);
+    writeHeldOrders(nextOrders);
+    setHeldOrders(nextOrders);
+    setMessage("Held order restored");
+  }
+
+  function printCurrentBill() {
+    if (items.length === 0) return;
+
+    const printWindow = window.open("", "_blank", "width=420,height=720");
+
+    if (!printWindow) {
+      setMessage("Allow popups to print the bill");
+      return;
+    }
+
+    printWindow.document.write(renderBillHtml({ items, subtotal, tax, discount: discount?.amount ?? 0, total, customerName: selectedCustomer?.name }));
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
+
   return (
-    <main className="min-h-screen bg-[#eaf8f1] p-3 text-[#16251f]">
-      <div className="mx-auto grid min-h-[calc(100vh-24px)] max-w-[1580px] grid-cols-1 overflow-hidden rounded-[22px] bg-white shadow-2xl shadow-emerald-950/10 lg:grid-cols-[220px_minmax(0,1fr)_390px]">
+    <main className="h-screen w-screen overflow-hidden bg-[#eaf8f1] text-[#16251f]">
+      <div className="grid h-full w-full grid-cols-1 overflow-hidden bg-white lg:grid-cols-[220px_minmax(0,1fr)_390px]">
         <aside className="hidden border-r border-emerald-100 bg-white lg:flex lg:flex-col">
           <Link href="/" className="flex h-20 items-center gap-2 px-7">
             <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-500 text-white">
@@ -295,7 +378,7 @@ export function TerminalView() {
           </Link>
         </aside>
 
-        <section className="min-w-0 bg-[#fbfffd] px-4 py-5 md:px-7">
+        <section className="min-w-0 overflow-y-auto bg-[#fbfffd] px-4 py-5 md:px-7">
           <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
               <Link className="flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white lg:hidden" href="/">
@@ -346,15 +429,18 @@ export function TerminalView() {
             </div>
           </header>
 
-          <div className="mb-5 flex items-end justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Category</p>
-              <h1 className="mt-1 text-2xl font-bold">Special menu for you</h1>
-            </div>
-            {message ? <span className="rounded-full bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700">{message}</span> : null}
-          </div>
+          {isLoading ? <PageLoader label="Loading terminal" /> : null}
 
-          <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
+          <div className={isLoading ? "hidden" : ""}>
+            <div className="mb-5 flex items-end justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">Category</p>
+                <h1 className="mt-1 text-2xl font-bold">Special menu for you</h1>
+              </div>
+              {message ? <span className="rounded-full bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700">{message}</span> : null}
+            </div>
+
+            <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
             <CategoryCard active={!categoryId} label="All" icon={<Utensils className="size-7" />} onClick={() => setCategoryId("")} />
             {categories.map((category, index) => (
               <CategoryCard
@@ -367,7 +453,7 @@ export function TerminalView() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 pb-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 pb-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {visibleProducts.map((product, index) => {
               const stock = stockFor(product);
               const reorderPoint = Math.max(...(product.inventory_items ?? []).map((item) => item.reorder_point), 0);
@@ -376,7 +462,18 @@ export function TerminalView() {
               return (
                 <article
                   key={product.id}
-                  className="group rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/10"
+                  className="group cursor-pointer rounded-[20px] border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/10"
+                  role="button"
+                  tabIndex={stock > 0 ? 0 : -1}
+                  onClick={() => {
+                    if (stock > 0) addProduct(product);
+                  }}
+                  onKeyDown={(event) => {
+                    if (stock > 0 && (event.key === "Enter" || event.key === " ")) {
+                      event.preventDefault();
+                      addProduct(product);
+                    }
+                  }}
                 >
                   <div className="relative mx-auto mb-4 flex aspect-square max-h-36 items-center justify-center rounded-full bg-[#fff6ec]">
                     <div className={productBlobClass(index)} />
@@ -402,7 +499,10 @@ export function TerminalView() {
                     <Button
                       className="h-9 rounded-full bg-emerald-500 px-3 text-white hover:bg-emerald-600"
                       disabled={stock <= 0}
-                      onClick={() => addProduct(product)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        addProduct(product);
+                      }}
                     >
                       <Plus className="size-4" />
                       Add
@@ -411,7 +511,15 @@ export function TerminalView() {
                   {product.product_variants && product.product_variants.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {product.product_variants.map((variant) => (
-                        <Button key={variant.id} variant="outline" size="xs" onClick={() => addProduct(product, variant)}>
+                        <Button
+                          key={variant.id}
+                          variant="outline"
+                          size="xs"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            addProduct(product, variant);
+                          }}
+                        >
                           {variant.name}
                         </Button>
                       ))}
@@ -420,10 +528,11 @@ export function TerminalView() {
                 </article>
               );
             })}
+            </div>
           </div>
         </section>
 
-        <aside className="border-l border-emerald-100 bg-white">
+        <aside className="overflow-y-auto border-l border-emerald-100 bg-white">
           <div className="flex min-h-full flex-col">
             <div className="border-b border-emerald-100 p-5">
               <div className="mb-5 flex items-center justify-between">
@@ -543,13 +652,38 @@ export function TerminalView() {
               />
               <Totals subtotal={subtotal} tax={tax} discount={discount?.amount ?? 0} total={total} />
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <Button variant="outline" className="h-11 rounded-full border-emerald-200 text-emerald-700" disabled={items.length === 0}>
+                <Button variant="outline" className="h-11 rounded-full border-emerald-200 text-emerald-700" disabled={items.length === 0} onClick={printCurrentBill}>
+                  <Printer className="size-4" />
                   Print
                 </Button>
-                <Button className="h-11 rounded-full bg-orange-500 text-white hover:bg-orange-600" disabled={items.length === 0}>
+                <Button className="h-11 rounded-full bg-orange-500 text-white hover:bg-orange-600" disabled={items.length === 0} onClick={holdCurrentOrder}>
+                  <History className="size-4" />
                   Hold
                 </Button>
               </div>
+              {heldOrders.length > 0 ? (
+                <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-black">Held Orders</p>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-emerald-700">{heldOrders.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {heldOrders.slice(0, 3).map((order) => (
+                      <button
+                        key={order.id}
+                        className="flex w-full items-center justify-between rounded-xl bg-white px-3 py-2 text-left text-sm shadow-sm"
+                        onClick={() => restoreHeldOrder(order)}
+                      >
+                        <span>
+                          <span className="block font-bold">{order.items.length} items</span>
+                          <span className="text-xs text-slate-400">{new Date(order.createdAt).toLocaleTimeString()}</span>
+                        </span>
+                        <RotateCcw className="size-4 text-emerald-600" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <Button
                 className="mt-3 h-12 w-full rounded-full bg-emerald-500 text-base font-black text-white hover:bg-emerald-600"
                 disabled={items.length === 0 || !storeId}
@@ -654,6 +788,21 @@ function Totals({ subtotal, tax, discount, total }: { subtotal: number; tax: num
   );
 }
 
+function readHeldOrders() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const value = window.localStorage.getItem(heldOrdersKey);
+    return value ? (JSON.parse(value) as HeldOrder[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHeldOrders(orders: HeldOrder[]) {
+  window.localStorage.setItem(heldOrdersKey, JSON.stringify(orders));
+}
+
 function PaymentModal({
   total,
   storeId,
@@ -673,19 +822,35 @@ function PaymentModal({
   onClose: () => void;
   onPaid: (receipt: Receipt) => void;
 }) {
-  const [tab, setTab] = useState<PaymentMethod>("CASH");
+  const [tab, setTab] = useState<PaymentMethod>("PHONEPE_QR");
   const [amountTendered, setAmountTendered] = useState(String(total));
-  const [phonePeReference, setPhonePeReference] = useState("");
-  const [pendingOrderId, setPendingOrderId] = useState("");
-  const [phonePeRedirectUrl, setPhonePeRedirectUrl] = useState("");
-  const [phonePeStatus, setPhonePeStatus] = useState<"IDLE" | "PENDING" | "COMPLETED" | "FAILED" | "TIMEOUT">("IDLE");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scannerImageUrl, setScannerImageUrl] = useState<string | null>(null);
+  const [scannerMerchantName, setScannerMerchantName] = useState("Dipen Store");
+  const [checkoutOrderId] = useState(() => `POS-${Date.now()}`);
   const changeDue = roundMoney(Math.max(Number(amountTendered || 0) - total, 0));
+
+  useEffect(() => {
+    void loadScanner();
+  }, []);
+
+  async function loadScanner() {
+    const response = await fetch("/api/settings/payment-scanner", { cache: "no-store" });
+    const payload = (await response.json()) as {
+      ok: boolean;
+      data?: { qrImageUrl: string | null; merchantName: string | null };
+    };
+
+    if (payload.ok) {
+      setScannerImageUrl(payload.data?.qrImageUrl ?? null);
+      setScannerMerchantName(payload.data?.merchantName ?? "Dipen Store");
+    }
+  }
 
   async function submitPayment() {
     if (tab === "PHONEPE_QR") {
-      await startPhonePePayment();
+      await confirmEsewaPayment();
       return;
     }
 
@@ -714,12 +879,15 @@ function PaymentModal({
     onPaid(payload.data);
   }
 
-  async function startPhonePePayment() {
+  async function confirmEsewaPayment() {
+    if (!scannerImageUrl) {
+      setMessage("Upload eSewa QR in Settings before confirming payment");
+      return;
+    }
+
     setIsSubmitting(true);
     setMessage("");
-    setPhonePeStatus("PENDING");
-
-    const orderResponse = await fetch("/api/orders", {
+    const response = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -727,102 +895,22 @@ function PaymentModal({
         customerId: customerId ?? null,
         discount,
         notes: note ?? null,
-        paymentMethod: "PHONEPE_QR",
+        paymentMethod: "ESEWA_QR",
+        paymentReference: checkoutOrderId,
         amountTendered: total,
         items,
       }),
     });
-    const orderPayload = (await orderResponse.json()) as ApiResponse<Receipt>;
+    const payload = (await response.json()) as ApiResponse<Receipt>;
 
-    if (!orderPayload.ok) {
-      setIsSubmitting(false);
-      setPhonePeStatus("FAILED");
-      setMessage(orderPayload.error);
-      return;
-    }
-
-    setPendingOrderId(orderPayload.data.id);
-
-    const initiateResponse = await fetch("/api/payments/phonepe/initiate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        orderId: orderPayload.data.id,
-        amountRupees: total,
-      }),
-    });
-    const initiatePayload = (await initiateResponse.json()) as ApiResponse<{
-      redirectUrl: string;
-      merchantTransactionId: string;
-    }>;
-
-    if (!initiatePayload.ok) {
-      setIsSubmitting(false);
-      setPhonePeStatus("FAILED");
-      setMessage(initiatePayload.error);
-      return;
-    }
-
-    setPhonePeReference(initiatePayload.data.merchantTransactionId);
-    setPhonePeRedirectUrl(initiatePayload.data.redirectUrl);
-    window.open(initiatePayload.data.redirectUrl, "_blank", "noopener,noreferrer");
-    setMessage("Waiting for PhonePe payment confirmation");
-    await pollPhonePeStatus(initiatePayload.data.merchantTransactionId);
-  }
-
-  async function pollPhonePeStatus(merchantTransactionId: string) {
-    const startedAt = Date.now();
-    const timeoutMs = 5 * 60 * 1000;
-
-    while (Date.now() - startedAt < timeoutMs) {
-      await sleep(3000);
-      const response = await fetch(`/api/payments/phonepe/status?merchantTransactionId=${encodeURIComponent(merchantTransactionId)}`, {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as ApiResponse<{
-        status: "PENDING" | "COMPLETED" | "FAILED";
-        receipt: Receipt | null;
-      }>;
-
-      if (!payload.ok) {
-        setMessage(payload.error);
-        continue;
-      }
-
-      if (payload.data.status === "COMPLETED" && payload.data.receipt) {
-        setPhonePeStatus("COMPLETED");
-        setIsSubmitting(false);
-        onPaid(payload.data.receipt);
-        return;
-      }
-
-      if (payload.data.status === "FAILED") {
-        setPhonePeStatus("FAILED");
-        setIsSubmitting(false);
-        setMessage("PhonePe payment failed. Retry or cancel this payment.");
-        return;
-      }
-    }
-
-    setPhonePeStatus("TIMEOUT");
     setIsSubmitting(false);
-    setMessage("Payment not received. Retry or cancel.");
-  }
 
-  async function cancelPhonePePayment() {
-    if (!phonePeReference) {
-      setPhonePeStatus("IDLE");
-      setMessage("");
+    if (!payload.ok) {
+      setMessage(payload.error);
       return;
     }
 
-    await fetch("/api/payments/phonepe/cancel", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ merchantTransactionId: phonePeReference }),
-    });
-    setPhonePeStatus("FAILED");
-    setMessage("PhonePe payment cancelled");
+    onPaid(payload.data);
   }
 
   return (
@@ -845,7 +933,7 @@ function PaymentModal({
           </Button>
           <Button className={tab === "PHONEPE_QR" ? "bg-emerald-500 text-white hover:bg-emerald-600" : ""} variant={tab === "PHONEPE_QR" ? "default" : "outline"} onClick={() => setTab("PHONEPE_QR")}>
             <Phone className="size-4" />
-            PhonePe
+            eSewa
           </Button>
           <Button variant="outline" disabled>
             <CreditCard className="size-4" />
@@ -873,49 +961,135 @@ function PaymentModal({
             </>
           ) : (
             <>
-              <div className="flex min-h-44 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-800">
-                <Phone className="size-9" />
-                <span>PhonePe QR payment for Rs {total.toFixed(2)}</span>
-                {phonePeRedirectUrl ? (
-                  <a className="font-black underline" href={phonePeRedirectUrl} target="_blank" rel="noreferrer">
-                    Open QR page
-                  </a>
-                ) : null}
+              <div className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-800">
+                <ScannerPreview amount={total} orderId={checkoutOrderId} imageUrl={scannerImageUrl} merchantName={scannerMerchantName} />
               </div>
               <input
                 className="h-11 w-full rounded-xl border border-emerald-100 bg-slate-50 px-4 text-sm outline-none"
-                placeholder="Merchant transaction ID"
-                value={phonePeReference}
+                placeholder="Order ID"
+                value={checkoutOrderId}
                 readOnly
               />
-              {pendingOrderId ? <p className="text-xs font-medium text-slate-400">Pending order: {pendingOrderId}</p> : null}
+              <p className="text-xs font-medium text-slate-400">Confirm manually after the customer pays in eSewa.</p>
             </>
           )}
 
           {message ? <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{message}</div> : null}
 
-          {tab === "PHONEPE_QR" && (phonePeStatus === "FAILED" || phonePeStatus === "TIMEOUT") ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-11 rounded-full" onClick={() => void cancelPhonePePayment()}>
-                Cancel
-              </Button>
-              <Button className="h-11 rounded-full bg-emerald-500 text-white hover:bg-emerald-600" onClick={() => void startPhonePePayment()}>
-                Retry
-              </Button>
-            </div>
-          ) : (
-            <Button className="h-12 w-full rounded-full bg-emerald-500 text-base font-black text-white hover:bg-emerald-600" disabled={isSubmitting} onClick={() => void submitPayment()}>
-              {isSubmitting ? "Processing..." : tab === "CASH" ? "Confirm Cash Payment" : "Charge with PhonePe QR"}
-            </Button>
-          )}
+          <Button className="h-12 w-full rounded-full bg-emerald-500 text-base font-black text-white hover:bg-emerald-600" disabled={isSubmitting} onClick={() => void submitPayment()}>
+            {isSubmitting ? "Processing..." : tab === "CASH" ? "Confirm Cash Payment" : "Confirm eSewa Payment"}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function ScannerPreview({ amount, orderId, imageUrl, merchantName }: { amount: number; orderId: string; imageUrl: string | null; merchantName: string }) {
+  const blocks = Array.from({ length: 49 }, (_, index) => {
+    const active = [0, 1, 2, 6, 7, 8, 12, 14, 18, 20, 22, 24, 27, 29, 31, 34, 36, 38, 40, 42, 44, 45, 46, 48].includes(index);
+    return <span key={index} className={active ? "rounded-sm bg-emerald-950" : "rounded-sm bg-white"} />;
+  });
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="flex items-center gap-2 text-emerald-700">
+        <ScanLine className="size-5" />
+        <span className="font-black">Scan to Pay</span>
+      </div>
+      {imageUrl ? (
+        <div className="relative rounded-[22px] border-4 border-white bg-white p-3 shadow-xl shadow-emerald-950/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="size-44 object-contain" src={imageUrl} alt="eSewa QR scanner" />
+          <div className="absolute inset-x-6 top-1/2 h-0.5 animate-pulse bg-orange-500 shadow-[0_0_16px_rgba(249,115,22,0.75)]" />
+        </div>
+      ) : (
+        <div className="relative rounded-[22px] border-4 border-white bg-white p-3 shadow-xl shadow-emerald-950/10">
+          <div className="grid size-40 grid-cols-7 gap-1">{blocks}</div>
+          <div className="absolute inset-x-6 top-1/2 h-0.5 animate-pulse bg-orange-500 shadow-[0_0_16px_rgba(249,115,22,0.75)]" />
+        </div>
+      )}
+      <div className="rounded-full bg-white px-4 py-2 text-sm font-black text-emerald-800">
+        Rs {amount.toFixed(2)}
+      </div>
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <QrCode className="size-4" />
+        <span>{imageUrl ? `${merchantName} · ${orderId}` : "Upload eSewa QR in Settings"}</span>
+      </div>
+    </div>
+  );
+}
+
+function renderBillHtml({
+  items,
+  subtotal,
+  tax,
+  discount,
+  total,
+  customerName,
+}: {
+  items: CartItem[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  customerName?: string;
+}) {
+  const lines = items
+    .map(
+      (item) => `
+        <tr>
+          <td>${escapeHtml(item.name)}<br><small>${escapeHtml(item.sku)} x ${item.quantity}</small></td>
+          <td style="text-align:right">Rs ${item.lineTotal.toFixed(2)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <title>Bill</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 24px; color: #16251f; }
+          h1 { margin: 0 0 4px; font-size: 22px; }
+          p { margin: 0; color: #64748b; font-size: 12px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+          td { border-bottom: 1px dashed #d1fae5; padding: 10px 0; font-size: 13px; vertical-align: top; }
+          small { color: #64748b; }
+          .total { margin-top: 18px; font-size: 14px; }
+          .row { display: flex; justify-content: space-between; padding: 5px 0; }
+          .grand { border-top: 1px dashed #94a3b8; margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 800; }
+        </style>
+      </head>
+      <body>
+        <h1>Foodigo</h1>
+        <p>${new Date().toLocaleString()}</p>
+        <p>${customerName ? `Customer: ${escapeHtml(customerName)}` : "Walk-in Customer"}</p>
+        <table>${lines}</table>
+        <div class="total">
+          <div class="row"><span>Sub Total</span><strong>Rs ${subtotal.toFixed(2)}</strong></div>
+          <div class="row"><span>Discount</span><strong>Rs ${discount.toFixed(2)}</strong></div>
+          <div class="row"><span>Tax</span><strong>Rs ${tax.toFixed(2)}</strong></div>
+          <div class="row grand"><span>Total</span><span>Rs ${total.toFixed(2)}</span></div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return entities[char];
+  });
 }
 
 function ReceiptPanel({ receipt, onClose }: { receipt: Receipt; onClose: () => void }) {
