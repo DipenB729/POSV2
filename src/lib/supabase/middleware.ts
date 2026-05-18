@@ -49,15 +49,18 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .eq("is_active", true)
-    .is("deleted_at", null)
-    .single();
+  let role = typeof user.app_metadata.app_role === "string" ? user.app_metadata.app_role : null;
+  if (!role) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .single();
 
-  const role = profile?.role;
+    role = profile?.role ?? null;
+  }
   const roleHome = role === "SUPER_ADMIN" ? "/superadmin" : role === "ADMIN" ? "/admin" : "/login";
 
   if ((pathname === "/login" || pathname === "/") && pathname !== roleHome) {

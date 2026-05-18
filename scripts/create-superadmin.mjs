@@ -36,6 +36,7 @@ if (!user) {
     email,
     password,
     email_confirm: true,
+    app_metadata: { app_role: "SUPER_ADMIN" },
     user_metadata: { name },
   });
   if (created.error) throw created.error;
@@ -43,6 +44,7 @@ if (!user) {
 } else {
   const updated = await supabase.auth.admin.updateUserById(user.id, {
     password,
+    app_metadata: { app_role: "SUPER_ADMIN" },
     user_metadata: { name },
   });
   if (updated.error) throw updated.error;

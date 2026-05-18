@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
       email: body.email.trim(),
       password: body.password,
       email_confirm: true,
+      app_metadata: {
+        app_role: "ADMIN",
+      },
       user_metadata: {
         name: body.name.trim(),
       },
