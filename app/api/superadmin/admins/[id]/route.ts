@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireSuperAdminFromRequest();
+    await requireSuperAdminFromRequest(request);
     const body = (await request.json()) as {
       name?: string;
       storeId?: string | null;

@@ -7,9 +7,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireSuperAdminFromRequest();
+    await requireSuperAdminFromRequest(request);
     const supabase = createSupabaseAdminClient();
 
     const [profiles, stores] = await Promise.all([
@@ -36,7 +36,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireSuperAdminFromRequest();
+    await requireSuperAdminFromRequest(request);
     const body = (await request.json()) as {
       name?: string;
       email?: string;

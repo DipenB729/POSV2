@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { NextRequest } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -6,8 +7,8 @@ type SupabaseCookieSession = {
   access_token?: string;
 };
 
-export async function requireSuperAdminFromRequest() {
-  const accessToken = getAccessTokenFromCookies();
+export async function requireSuperAdminFromRequest(request?: NextRequest) {
+  const accessToken = getAccessTokenFromHeader(request) ?? getAccessTokenFromCookies();
   if (!accessToken) throw new Error("Authentication required");
 
   const supabase = createSupabaseAdminClient();
@@ -21,6 +22,12 @@ export async function requireSuperAdminFromRequest() {
   if (user.app_metadata.app_role !== "SUPER_ADMIN") throw new Error("Insufficient permissions");
 
   return user;
+}
+
+function getAccessTokenFromHeader(request?: NextRequest) {
+  const value = request?.headers.get("authorization");
+  if (!value?.toLowerCase().startsWith("bearer ")) return null;
+  return value.slice("bearer ".length).trim() || null;
 }
 
 function getAccessTokenFromCookies() {
