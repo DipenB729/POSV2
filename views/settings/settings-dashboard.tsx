@@ -1,146 +1,240 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { BadgeCheck, Building2, FileText, ImagePlus, KeyRound, Mail, QrCode, ReceiptText, ScanLine, ShieldCheck, Users } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ImagePlus, Loader2, QrCode, RefreshCw, Save, Store, UploadCloud } from "lucide-react";
 
 import { AppHeader, AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 
-const tabs = [
-  { title: "Store Info", icon: Building2, detail: "Business identity, address, currency, timezone, and logo." },
-  { title: "Tax Rates", icon: BadgeCheck, detail: "Default tax rules and product-level tax overrides." },
-  { title: "Users", icon: Users, detail: "Role assignment for SUPER_ADMIN, ADMIN, MANAGER, CASHIER, and INVENTORY_CLERK." },
-  { title: "Payment Methods", icon: KeyRound, detail: "Cash and eSewa QR configuration. Card remains disabled until a processor is added." },
-  { title: "Scanner", icon: ScanLine, detail: "eSewa QR scanner opens first when charging an order from the terminal." },
-  { title: "Receipt Template", icon: ReceiptText, detail: "Receipt header, footer, tax labels, and email copy." },
-  { title: "Integrations", icon: Mail, detail: "SMTP, storage, Redis jobs, eSewa credentials, and export destinations." },
-  { title: "Audit Logs", icon: ShieldCheck, detail: "Sensitive mutation history with user, action, entity, IP, before, and after snapshots." },
-  { title: "Exports", icon: FileText, detail: "CSV export presets for inventory, sales, refunds, and customer reports." },
-];
+type ScannerSettings = {
+  qrImageUrl: string | null;
+  merchantName: string | null;
+  updatedAt?: string | null;
+};
 
 export function SettingsDashboard() {
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [merchantName, setMerchantName] = useState("Dipen Store");
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const selectedPreviewUrl = useMemo(() => {
+    if (!selectedFile) return null;
+    return URL.createObjectURL(selectedFile);
+  }, [selectedFile]);
 
   useEffect(() => {
     void loadScannerSettings();
   }, []);
 
-  async function loadScannerSettings() {
-    const response = await fetch("/api/settings/payment-scanner", { cache: "no-store" });
-    const payload = (await response.json()) as {
-      ok: boolean;
-      data?: { qrImageUrl: string | null; merchantName: string | null };
-      error?: string;
+  useEffect(() => {
+    return () => {
+      if (selectedPreviewUrl) URL.revokeObjectURL(selectedPreviewUrl);
     };
+  }, [selectedPreviewUrl]);
 
-    if (payload.ok) {
+  async function loadScannerSettings() {
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/settings/payment-scanner", { cache: "no-store" });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: ScannerSettings;
+        error?: string;
+      };
+
+      if (!payload.ok) {
+        setMessageType("error");
+        setMessage(payload.error ?? "Unable to load scanner settings");
+        return;
+      }
+
       setQrImageUrl(payload.data?.qrImageUrl ?? null);
       setMerchantName(payload.data?.merchantName ?? "Dipen Store");
+      setUpdatedAt(payload.data?.updatedAt ?? null);
+    } catch (error) {
+      setMessageType("error");
+      setMessage(error instanceof Error ? error.message : "Unable to load scanner settings");
+    } finally {
+      setIsLoading(false);
     }
   }
 
   async function saveScannerSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!merchantName.trim()) {
+      setMessageType("error");
+      setMessage("Merchant name is required");
+      return;
+    }
+
     if (!selectedFile && !qrImageUrl) {
+      setMessageType("error");
       setMessage("Upload your eSewa QR image first");
       return;
     }
 
-    setIsUploading(true);
+    setIsSaving(true);
     setMessage("");
 
-    const body = new FormData();
-    body.append("merchantName", merchantName);
-    if (selectedFile) {
-      body.append("file", selectedFile);
+    try {
+      const body = new FormData();
+      body.append("merchantName", merchantName);
+      if (selectedFile) body.append("file", selectedFile);
+
+      const response = await fetch("/api/settings/payment-scanner", {
+        method: "POST",
+        body,
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        data?: ScannerSettings;
+        error?: string;
+      };
+
+      if (!payload.ok) {
+        setMessageType("error");
+        setMessage(payload.error ?? "Unable to save scanner settings");
+        return;
+      }
+
+      setQrImageUrl(payload.data?.qrImageUrl ?? null);
+      setMerchantName(payload.data?.merchantName ?? "Dipen Store");
+      setUpdatedAt(payload.data?.updatedAt ?? null);
+      setSelectedFile(null);
+      setMessageType("success");
+      setMessage("eSewa QR scanner settings saved");
+    } catch (error) {
+      setMessageType("error");
+      setMessage(error instanceof Error ? error.message : "Unable to save scanner settings");
+    } finally {
+      setIsSaving(false);
     }
-
-    const response = await fetch("/api/settings/payment-scanner", {
-      method: "POST",
-      body,
-    });
-    const payload = (await response.json()) as {
-      ok: boolean;
-      data?: { qrImageUrl: string | null; merchantName: string | null };
-      error?: string;
-    };
-
-    setIsUploading(false);
-
-    if (!payload.ok) {
-      setMessage(payload.error ?? "Unable to upload scanner");
-      return;
-    }
-
-    setQrImageUrl(payload.data?.qrImageUrl ?? null);
-    setMerchantName(payload.data?.merchantName ?? "Dipen Store");
-    setSelectedFile(null);
-    setMessage("eSewa QR scanner saved to database");
   }
+
+  const previewUrl = selectedPreviewUrl ?? qrImageUrl;
 
   return (
     <AppShell>
-      <AppHeader eyebrow="Enterprise Settings" title="Administration" />
-      <section className="mb-5 rounded-[20px] border border-emerald-100 bg-white p-5 shadow-sm">
-        <div className="grid gap-5 lg:grid-cols-[1fr_240px] lg:items-center">
+      <AppHeader eyebrow="Settings" title="Administration" />
+
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
-              <QrCode className="size-5" />
-            </div>
-            <h2 className="text-lg font-black">eSewa QR Scanner</h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-500">Upload your eSewa QR image. It is stored in Supabase and shown at checkout. Payment confirmation remains manual until eSewa API integration is added.</p>
-            <form className="mt-5 grid max-w-2xl gap-3 sm:grid-cols-[1fr_auto_auto]" onSubmit={(event) => void saveScannerSettings(event)}>
-              <input
-                className="input h-11"
-                placeholder="Merchant name"
-                value={merchantName}
-                onChange={(event) => setMerchantName(event.target.value)}
-              />
-              <label className="flex h-11 cursor-pointer items-center gap-2 rounded-full border border-emerald-100 bg-white px-4 text-sm font-bold text-slate-600 hover:bg-emerald-50">
-                <ImagePlus className="size-4" />
-                {selectedFile ? selectedFile.name : "Upload eSewa QR"}
-                <input className="hidden" type="file" accept="image/*" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} />
-              </label>
-              <Button className="h-11 rounded-full px-5" type="submit" disabled={isUploading}>
-                {isUploading ? "Saving..." : "Save Scanner"}
-              </Button>
-            </form>
-            {message ? <p className="mt-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Payment Settings</p>
+            <h2 className="mt-2 text-xl font-bold text-slate-900">eSewa QR Scanner</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Configure the QR image shown during terminal checkout for eSewa QR payments.
+            </p>
           </div>
-          <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 p-4 text-center">
-            {qrImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="mx-auto size-36 rounded-xl bg-white object-contain p-2 shadow-sm" src={qrImageUrl} alt="eSewa QR scanner" />
-            ) : (
-              <div className="mx-auto grid size-28 grid-cols-5 gap-1 rounded-xl bg-white p-2">
-                {Array.from({ length: 25 }, (_, index) => (
-                  <span key={index} className={[0, 1, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23, 24].includes(index) ? "rounded-sm bg-emerald-950" : "rounded-sm bg-emerald-100"} />
-                ))}
-              </div>
-            )}
-            <p className="mt-3 text-sm font-bold text-emerald-700">{qrImageUrl ? "eSewa QR Saved" : "eSewa QR Required"}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => void loadScannerSettings()} disabled={isLoading || isSaving}>
+              <RefreshCw className={isLoading ? "size-4 animate-spin" : "size-4"} />
+              Refresh
+            </Button>
+            <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+              <QrCode className="size-4" />
+              Active Setting
+            </span>
           </div>
         </div>
-      </section>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <section key={tab.title} className="rounded-[20px] border border-emerald-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/10">
-              <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
-                <Icon className="size-4" />
+
+        <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <form className="space-y-5" onSubmit={(event) => void saveScannerSettings(event)}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-slate-500">Merchant Name</span>
+                <div className="relative">
+                  <Store className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    className="input pl-9"
+                    placeholder="Merchant name"
+                    value={merchantName}
+                    onChange={(event) => setMerchantName(event.target.value)}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-slate-500">QR Image</span>
+                <span className="flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 transition hover:bg-slate-50">
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <ImagePlus className="size-4 shrink-0 text-slate-400" />
+                    <span className="truncate">{selectedFile ? selectedFile.name : qrImageUrl ? "Replace QR image" : "Upload QR image"}</span>
+                  </span>
+                  <UploadCloud className="size-4 shrink-0 text-slate-400" />
+                  <input
+                    className="hidden"
+                    type="file"
+                    accept="image/*"
+                    disabled={isLoading || isSaving}
+                    onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                  />
+                </span>
+              </label>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className="inline-flex items-center gap-2 font-semibold text-slate-900">
+                  {qrImageUrl ? <CheckCircle2 className="size-4 text-emerald-600" /> : <QrCode className="size-4 text-slate-400" />}
+                  {qrImageUrl ? "Scanner is configured" : "Scanner image required"}
+                </span>
+                {updatedAt ? <span className="text-slate-500">Updated {new Date(updatedAt).toLocaleString()}</span> : null}
               </div>
-              <h2 className="font-semibold">{tab.title}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{tab.detail}</p>
-            </section>
-          );
-        })}
-      </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                This setting is used by the terminal checkout screen when the customer chooses eSewa QR payment.
+              </p>
+            </div>
+
+            {message ? (
+              <p className={messageType === "success" ? "text-sm font-semibold text-emerald-700" : "text-sm font-semibold text-red-600"}>
+                {message}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={isLoading || isSaving}>
+                {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                {isSaving ? "Saving" : "Save Settings"}
+              </Button>
+              {selectedFile ? (
+                <Button type="button" variant="outline" onClick={() => setSelectedFile(null)} disabled={isSaving}>
+                  Cancel Upload
+                </Button>
+              ) : null}
+            </div>
+          </form>
+
+          <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-center">
+              {previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="mx-auto size-48 rounded-lg bg-white object-contain p-2" src={previewUrl} alt="eSewa QR scanner" />
+              ) : (
+                <div className="mx-auto grid size-40 grid-cols-5 gap-1 rounded-lg bg-white p-3">
+                  {Array.from({ length: 25 }, (_, index) => (
+                    <span
+                      key={index}
+                      className={[0, 1, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23, 24].includes(index) ? "rounded-sm bg-slate-900" : "rounded-sm bg-slate-100"}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="mt-3 text-center text-sm font-semibold text-slate-900">{selectedFile ? "New QR Preview" : qrImageUrl ? "Saved QR Image" : "No QR Uploaded"}</p>
+            <p className="mt-1 text-center text-xs leading-5 text-slate-500">{merchantName || "Merchant name"}</p>
+          </aside>
+        </div>
+      </section>
     </AppShell>
   );
 }
