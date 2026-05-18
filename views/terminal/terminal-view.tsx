@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -129,6 +130,9 @@ const sideNav = [
 ];
 
 export function TerminalView() {
+  const pathname = usePathname();
+  const basePath = pathname.startsWith("/admin") ? "/admin" : "";
+  const hrefFor = (href: string) => (href === "/" ? basePath || "/" : `${basePath}${href}`);
   const {
     items,
     customerId,
@@ -346,7 +350,7 @@ export function TerminalView() {
     <main className="h-screen w-screen overflow-hidden bg-[#eaf8f1] text-[#16251f]">
       <div className="grid h-full w-full grid-cols-1 overflow-hidden bg-white lg:grid-cols-[220px_minmax(0,1fr)_390px]">
         <aside className="hidden border-r border-emerald-100 bg-white lg:flex lg:flex-col">
-          <Link href="/" className="flex h-20 items-center gap-2 px-7">
+          <Link href={hrefFor("/")} className="flex h-20 items-center gap-2 px-7">
             <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-500 text-white">
               <Store className="size-5" />
             </span>
@@ -359,7 +363,7 @@ export function TerminalView() {
               return (
                 <Link
                   key={item.label}
-                  href={item.href}
+                  href={hrefFor(item.href)}
                   className={
                     active
                       ? "flex h-11 items-center gap-3 rounded-xl bg-emerald-50 px-4 text-sm font-semibold text-emerald-700"
@@ -372,7 +376,7 @@ export function TerminalView() {
               );
             })}
           </nav>
-          <Link href="/" className="mt-auto flex h-14 items-center gap-3 px-8 text-sm font-medium text-slate-500 hover:text-slate-900">
+          <Link href="/auth/sign-out" className="mt-auto flex h-14 items-center gap-3 px-8 text-sm font-medium text-slate-500 hover:text-slate-900">
             <LogOut className="size-4" />
             Logout
           </Link>
@@ -381,7 +385,7 @@ export function TerminalView() {
         <section className="min-w-0 overflow-y-auto bg-[#fbfffd] px-4 py-5 md:px-7">
           <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
-              <Link className="flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white lg:hidden" href="/">
+              <Link className="flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white lg:hidden" href={hrefFor("/")}>
                 <Home className="size-5" />
               </Link>
               <form className="relative w-full min-w-[260px] max-w-[520px]" onSubmit={submitBarcode}>

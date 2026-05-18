@@ -26,12 +26,14 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const basePath = pathname.startsWith("/admin") ? "/admin" : "";
+  const hrefFor = (href: string) => (href === "/" ? basePath || "/" : `${basePath}${href}`);
 
   return (
     <main className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-900">
       <div className="grid h-full w-full grid-cols-1 overflow-hidden bg-white lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden border-r border-slate-200 bg-slate-50 lg:flex lg:flex-col">
-          <Link href="/" className="flex h-16 items-center gap-3 px-6 border-b border-slate-200">
+          <Link href={hrefFor("/")} className="flex h-16 items-center gap-3 px-6 border-b border-slate-200">
             <span className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25">
               <Store className="size-5" />
             </span>
@@ -43,12 +45,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 space-y-1.5 px-3 py-4">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              const active = item.href === "/" ? pathname === hrefFor("/") : pathname.startsWith(hrefFor(item.href));
 
               return (
                 <Link
                   key={item.label}
-                  href={item.href}
+                  href={hrefFor(item.href)}
                   className={
                     active
                       ? "flex h-11 items-center justify-between rounded-lg bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-200"
@@ -76,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </div>
-          <Link href="/" className="flex h-12 items-center gap-3 px-6 text-sm font-medium text-slate-500 hover:text-slate-900 border-t border-slate-200">
+          <Link href="/auth/sign-out" className="flex h-12 items-center gap-3 px-6 text-sm font-medium text-slate-500 hover:text-slate-900 border-t border-slate-200">
             <LogOut className="size-4" />
             Sign Out
           </Link>
@@ -100,7 +102,7 @@ export function AppHeader({
   return (
     <header className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div className="flex items-center gap-4">
-        <Link className="flex size-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 text-slate-600 lg:hidden" href="/">
+        <Link className="flex size-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 text-slate-600 lg:hidden" href="/admin">
           <Home className="size-5" />
         </Link>
         <div className="space-y-0.5">
