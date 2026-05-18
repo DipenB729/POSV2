@@ -5,7 +5,6 @@ import Link from "next/link";
 import { LogOut, RefreshCw, ShieldCheck, Store, UserPlus, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type StoreOption = {
   id: string;
@@ -46,13 +45,6 @@ export function SuperAdminDashboard() {
   async function loadAdmins() {
     setIsLoading(true);
     const headers = await getAuthHeaders();
-    if (!headers) {
-      setIsLoading(false);
-      setMessageType("error");
-      setMessage("Authentication required. Please sign in again.");
-      return;
-    }
-
     const response = await fetch("/api/superadmin/admins", { cache: "no-store", headers });
     const payload = (await response.json()) as { ok: boolean; data?: AdminPayload; error?: string };
     setIsLoading(false);
@@ -72,12 +64,6 @@ export function SuperAdminDashboard() {
     setIsCreating(true);
     setMessage("");
     const authHeaders = await getAuthHeaders();
-    if (!authHeaders) {
-      setIsCreating(false);
-      setMessageType("error");
-      setMessage("Authentication required. Please sign in again.");
-      return;
-    }
 
     const response = await fetch("/api/superadmin/admins", {
       method: "POST",
@@ -109,11 +95,6 @@ export function SuperAdminDashboard() {
 
   async function setAdminActive(admin: AdminUser, isActive: boolean) {
     const authHeaders = await getAuthHeaders();
-    if (!authHeaders) {
-      setMessageType("error");
-      setMessage("Authentication required. Please sign in again.");
-      return;
-    }
 
     const response = await fetch(`/api/superadmin/admins/${admin.id}`, {
       method: "PATCH",
@@ -245,11 +226,5 @@ export function SuperAdminDashboard() {
 }
 
 async function getAuthHeaders() {
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) return null;
-  return { Authorization: `Bearer ${session.access_token}` };
+  return {};
 }

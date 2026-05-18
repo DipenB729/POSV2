@@ -7,6 +7,11 @@ type SupabaseCookieSession = {
   access_token?: string;
 };
 
+type SessionCookie = {
+  name: string;
+  value: string;
+};
+
 export async function requireSuperAdminFromRequest(request?: NextRequest) {
   const accessToken = getAccessTokenFromHeader(request) ?? getAccessTokenFromCookies();
   if (!accessToken) throw new Error("Authentication required");
@@ -31,16 +36,14 @@ function getAccessTokenFromHeader(request?: NextRequest) {
 }
 
 function getAccessTokenFromCookies() {
-  const authCookie = cookies()
-    .getAll()
-    .find((cookie) => cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token"));
-
-  if (!authCookie?.value) return null;
+  const allCookies = cookies().getAll();
+  const authCookie = findSupabaseAuthCookie(allCookies);
+  if (!authCookie) return null;
 
   try {
-    const rawValue = authCookie.value.startsWith("base64-")
-      ? Buffer.from(authCookie.value.slice("base64-".length), "base64").toString("utf8")
-      : decodeURIComponent(authCookie.value);
+    const rawValue = authCookie.startsWith("base64-")
+      ? Buffer.from(authCookie.slice("base64-".length), "base64").toString("utf8")
+      : decodeURIComponent(authCookie);
     const session = JSON.parse(rawValue) as SupabaseCookieSession | [string, string];
 
     if (Array.isArray(session)) return session[0] ?? null;
@@ -48,4 +51,16 @@ function getAccessTokenFromCookies() {
   } catch {
     return null;
   }
+}
+
+function findSupabaseAuthCookie(allCookies: SessionCookie[]) {
+  const directCookie = allCookies.find((cookie) => cookie.name.startsWith("sb-") && cookie.name.endsWith("-auth-token"));
+  if (directCookie?.value) return directCookie.value;
+
+  const chunks = allCookies
+    .filter((cookie) => /^sb-.+-auth-token\.\d+$/.test(cookie.name))
+    .sort((a, b) => Number(a.name.split(".").at(-1)) - Number(b.name.split(".").at(-1)));
+
+  if (chunks.length === 0) return null;
+  return chunks.map((chunk) => chunk.value).join("");
 }
