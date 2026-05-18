@@ -1,14 +1,15 @@
 import { NextRequest } from "next/server";
 
 import { fail, ok } from "@/controllers/http";
-import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireSuperAdminFromRequest } from "@/lib/auth/superadmin";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireSuperAdmin();
+    await requireSuperAdminFromRequest();
     const body = (await request.json()) as {
       name?: string;
       storeId?: string | null;
@@ -34,16 +35,4 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   } catch (error) {
     return fail(error);
   }
-}
-
-async function requireSuperAdmin() {
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) throw error;
-  if (!user) throw new Error("Authentication required");
-  if (user.app_metadata.app_role !== "SUPER_ADMIN") throw new Error("Insufficient permissions");
 }
