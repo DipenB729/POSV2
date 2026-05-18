@@ -1,15 +1,14 @@
 import { NextRequest } from "next/server";
 
 import { fail, ok } from "@/controllers/http";
-import { requireRole } from "@/lib/auth/roles";
-import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireRole(["SUPER_ADMIN"]);
+    await requireSuperAdmin();
     const supabase = createSupabaseAdminClient();
 
     const [profiles, stores] = await Promise.all([
@@ -36,7 +35,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireRole(["SUPER_ADMIN"]);
+    await requireSuperAdmin();
     const body = (await request.json()) as {
       name?: string;
       email?: string;
@@ -82,4 +81,16 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return fail(error);
   }
+}
+
+async function requireSuperAdmin() {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) throw error;
+  if (!user) throw new Error("Authentication required");
+  if (user.app_metadata.app_role !== "SUPER_ADMIN") throw new Error("Insufficient permissions");
 }
